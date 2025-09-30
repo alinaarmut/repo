@@ -41,3 +41,14 @@ curl -X POST http://localhost:8080/app/register \
 - Snyk: Анализ зависимостей на известные уязвимости (SCA).
 
 - GitHub Actions: Автоматический запуск сборки, тестов и анализа при push/pull request в ветки main
+
+
+**Результаты:**
+
+1. Spotbugs
+<img width="1327" height="756" alt="Снимок экрана 2025-10-01 в 07 03 18" src="https://github.com/user-attachments/assets/677b660c-48f6-4c6d-b493-37862a0c6d95" />
+
+2. 
+
+<img width="1263" height="569" alt="Снимок экрана 2025-10-01 в 07 04 45" src="https://github.com/user-attachments/assets/a1c2aa70-94a5-45a1-8639-6c90e54f13b0" />
+
