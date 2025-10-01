@@ -1,0 +1,78 @@
+name: CI/CD Pipeline with Security Scanners
+
+on:
+  push:
+    branches: [ main]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      # --- Checkout ---
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # --- Java setup ---
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set JAVA_HOME explicitly
+        run: echo "JAVA_HOME=${JAVA_HOME}" >> $GITHUB_ENV
+
+
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
+
+
+      - name: Build with Maven
+        run: mvn clean install -DskipTests --batch-mode
+
+      # === sast: spotbugs ===
+      - name: Run SpotBugs and generate HTML report
+        run: mvn com.github.spotbugs:spotbugs-maven-plugin:4.9.5.0:spotbugs
+
+      - name: Upload SpotBugs HTML Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: spotbugs-report
+          path: target/spotbugs.html
+
+      # === sca: snyk ===
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Snyk CLI and snyk-to-html
+        run: |
+          npm install -g snyk snyk-to-html
+          echo "$(npm bin -g)" >> $GITHUB_PATH
+
+      - name: Authenticate Snyk
+        run: snyk auth $SNYK_TOKEN
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Run Snyk Maven Scan and generate HTML report
+        run: |
+          snyk test --all-projects --json-file-output=snyk-report.json
+          snyk-to-html -i snyk-report.json -o snyk-report.html
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME }}
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Upload Snyk HTML Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: snyk-report
+          path: snyk-report.html
